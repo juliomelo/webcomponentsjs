@@ -22,7 +22,9 @@
 
   function NodeList() {
     this.length = 0;
+    this.changeCount_ = 0;
     nonEnum(this, 'length');
+    nonEnum(this, 'changeCount_');
   }
   NodeList.prototype = {
     item: function(index) {
@@ -59,6 +61,7 @@
     }
 
     delete list[length];
+    list.changeCount_++;
   }
 
   function insertBeforeNodeList(list, item, ref) {
@@ -73,6 +76,7 @@
     }
 
     list[i] = item;
+    list.changeCount_++;
   }
 
   function indexOfNodeList(list, item) {
@@ -96,6 +100,7 @@
     }
 
     list.length = 0;
+    list.changeCount_++;
   }
 
   function copyNodeList(dest, src) {
@@ -110,6 +115,7 @@
     }
 
     dest.length = length;
+    dest.changeCount_++;
   }
 
   scope.wrappers.NodeList = NodeList;

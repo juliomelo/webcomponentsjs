@@ -27,6 +27,66 @@
     return node;
   }
 
+  function nonEnum(obj, prop) {
+    Object.defineProperty(obj, prop, {enumerable: false});
+  }
+
+  function createIndex(obj, idx) {
+    Object.defineProperty(obj, idx, { get: function() { return obj.item(idx); } });
+  }
+
+  function ChildrenNodeList(wrapper) {
+    this.wrapper_ = wrapper;
+    this.changeCount_ = null;
+    this.maxLength_ = 0;
+    this.items_ = [];
+    nonEnum(this, 'wrapper_');
+    nonEnum(this, 'changeCount_');
+    nonEnum(this, 'maxLength_');
+    nonEnum(this, 'items_');
+    this.build_();
+  }
+
+  ChildrenNodeList.prototype = {
+    item: function(index) {
+      if (this.isDirty_()) {
+        this.build_();
+      }
+
+      return this.items_[index];
+    },
+    get length() {
+      if (this.isDirty_()) {
+        this.build_();
+      }
+
+      return this.items_.length;
+    },
+    isDirty_: function() {
+      return this.wrapper_.childNodes.changeCount_ !== this.changeCount_;
+    },
+    build_: function() {
+      this.items_ = [];
+
+      for (var child = this.wrapper_.firstElementChild;
+           child;
+           child = child.nextElementSibling) {
+        this.items_.push(child);
+      }
+
+      while (this.maxLength_ < this.items_.length) {
+        createIndex(this, this.maxLength_++);
+      }
+
+      this.changeCount_ = this.wrapper_.childNodes.changeCount_;
+    }
+  }
+
+  nonEnum(ChildrenNodeList.prototype, 'item');
+  nonEnum(ChildrenNodeList.prototype, 'length');
+  nonEnum(ChildrenNodeList.prototype, 'isDirty_');
+  nonEnum(ChildrenNodeList.prototype, 'build_');
+
   var ParentNodeInterface = {
     get firstElementChild() {
       return forwardElement(this.firstChild);
@@ -37,6 +97,10 @@
     },
 
     get childElementCount() {
+      if (this.children_ !== undefined) {
+        return this.children_.length;
+      }
+
       var count = 0;
       for (var child = this.firstElementChild;
            child;
@@ -47,15 +111,11 @@
     },
 
     get children() {
-      var wrapperList = new NodeList();
-      var i = 0;
-      for (var child = this.firstElementChild;
-           child;
-           child = child.nextElementSibling) {
-        wrapperList[i++] = child;
+      if (this.children_ === undefined) {
+        this.children_ = new ChildrenNodeList(this);
       }
-      wrapperList.length = i;
-      return wrapperList;
+
+      return this.children_;
     },
 
     remove: function() {
